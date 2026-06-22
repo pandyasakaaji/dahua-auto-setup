@@ -114,3 +114,35 @@ After retrieving the configuration, verify that the `table` field contains the s
 }
 ```
 
+### DHCPIPv4
+
+To toggle IPv4 DHCP option, use the following CGI:
+
+```json
+{
+  "method":"configManager.setConfig",
+  "params":{
+    "name":"Network",
+    "table":{
+      "DefaultInterface":"eth0",
+      "Domain":"dauha",
+      "Hostname":"BSC",
+      "eth0":{
+        "DefaultGateway":"x.x.x.x",
+        "DhcpEnable":true, // or false
+        "DnsServers":[
+          "",
+          ""
+        ],
+        "EnableDhcpReservedIP":false,
+        "IPAddress":"x.x.x.x",
+        "MTU":1500,
+        "PhysicalAddress":"xx:xx:xx:xx:xx:xx",
+        "SubnetMask":"x.x.x.x"
+      }
+    }
+  },
+  "id":999,
+  "session":""
+}
+```
