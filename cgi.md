@@ -1,148 +1,234 @@
-# Dahua Face Recognition Access Controller CGI
+# Dahua RPC2 API Reference
 
-### Tested on
+## Authentication
 
-* **Model:** DHI-ASI3204E
-* **System Version:** V3.002.0000002.0.R.20250307
-* **Security Baseline Version:** V2.4
+RPC2 endpoints require a session token. CGI endpoints use **Digest Auth**.
 
-## Getting Configuration
-
-### Get All Configuration Names
+### Login (get session token)
 
 ```json
+POST http://<device-ip>/RPC2
+
 {
-  "method": "configManager.getMemberNames",
-  "params": {},
-  "id": 999,
-  "session": ""
+    "method": "global.login",
+    "params": {
+        "userName": "admin",
+        "password": "<hashed_password>",
+        "clientType": "Web3.0",
+        "authorityType": "Default",
+        "passwordType": "Default"
+    },
+    "id": 1
 }
 ```
 
-### Get a Specific Configuration
+Response includes `session` token — use it in all subsequent RPC2 requests.
 
-Once the configuration name has been identified, a specific configuration can be retrieved using the `configManager.getConfig` method by providing the `name` parameter.
+### Digest Auth (CGI endpoints)
+
+CGI endpoints (`/cgi-bin/`) require HTTP Digest Authentication instead of a session token.
+
+```
+Authorization: Digest username="admin", realm="...", nonce="...", uri="...", response="..."
+```
+
+With curl:
+```bash
+curl --digest -u admin:<password> "http://<device-ip>/cgi-bin/..."
+```
+
+---
+
+## Read Config
+
+### Get Specific
+
+Retrieve a named config entry.
 
 ```json
 {
-  "method": "configManager.getConfig",
-  "params": {
-    "name": "methodNames"
-  },
-  "id": 999,
-  "session": ""
+    "method": "configManager.getConfig",
+    "params": {
+        "name": "NTP"
+    },
+    "id": 999,
+    "session": "<session_token>"
 }
 ```
 
-For example, to retrieve the `Auto Upload` configuration:
+### Get All
+
+List all available config names.
 
 ```json
 {
-  "method": "configManager.getConfig",
-  "params": {
-    "name": "EventHttpUpload"
-  },
-  "id": 999,
-  "session": ""
+    "method": "configManager.getMemberNames",
+    "params": {},
+    "id": 999,
+    "session": "<session_token>"
 }
 ```
 
-Example response:
+---
+
+## Write Config
+
+### Set EventHttpUpload
+
+Configure HTTP event upload (AccessControl, DoorStatus) to the ADMS server.
 
 ```json
 {
-  "id": 999,
-  "params": {
-    "table": {
-      "Enable": true,
-      "Type": "digest",
-      "UploadServerList": [
-        {
-          "Address": "",
-          "AuthEnable": false,
-          "EventType": [
-            "AccessControl",
-            "DoorStatus"
-          ],
-          "HttpsEnable": false,
-          "Password": "",
-          "Port": 0,
-          "Uploadpath": "/",
-          "UserName": ""
+    "method": "configManager.setConfig",
+    "params": {
+        "name": "EventHttpUpload",
+        "table": {
+            "Enable": true,
+            "Type": "digest",
+            "UploadServerList": [
+                {
+                    "Address": "<adms_server>",
+                    "AuthEnable": false,
+                    "EventType": ["AccessControl", "DoorStatus"],
+                    "HttpsEnable": false,
+                    "Password": "",
+                    "Port": 60087,
+                    "Uploadpath": "/",
+                    "UserName": ""
+                }
+            ]
         }
-      ]
-    }
-  },
-  "result": true,
-  "session": ""
+    },
+    "id": 1000,
+    "session": "<session_token>"
 }
 ```
 
-After retrieving the configuration, verify that the `table` field contains the settings you intend to modify. The retrieved `table` object can then be used as the basis for the update request.
+### Set AutoUpload
 
-## Updating Configuration
-
-### Auto Upload
+Configure auto event upload to the ADMS server.
 
 ```json
 {
-  "method": "configManager.setConfig",
-  "params": {
-    "name": "EventHttpUpload",
-    "table": {
-      "Enable": true,
-      "Type": "digest",
-      "UploadServerList": [
-        {
-          "Address": "",
-          "AuthEnable": false,
-          "EventType": [
-            "AccessControl",
-            "DoorStatus"
-          ],
-          "HttpsEnable": false,
-          "Password": "",
-          "Port": 0,
-          "Uploadpath": "/",
-          "UserName": ""
+    "method": "configManager.setConfig",
+    "params": {
+        "name": "AutoUpload",
+        "table": {
+            "Enable": true,
+            "Type": "digest",
+            "UploadServerList": [
+                {
+                    "Address": "<adms_server>",
+                    "AuthEnable": false,
+                    "EventType": ["AccessControl", "DoorStatus"],
+                    "HttpsEnable": false,
+                    "Password": "",
+                    "Port": 60087,
+                    "Uploadpath": "/",
+                    "UserName": ""
+                }
+            ]
         }
-      ]
-    }
-  },
-  "id": 1000,
-  "session": ""
+    },
+    "id": 1000,
+    "session": "<session_token>"
 }
 ```
 
-### DHCPIPv4
+### Set VSP_CGI
 
-To toggle IPv4 DHCP option, use the following CGI:
+Configure device auto-registration to the ADMS server.
 
 ```json
 {
-  "method":"configManager.setConfig",
-  "params":{
-    "name":"Network",
-    "table":{
-      "DefaultInterface":"eth0",
-      "Domain":"dauha",
-      "Hostname":"BSC",
-      "eth0":{
-        "DefaultGateway":"x.x.x.x",
-        "DhcpEnable":true, // or false
-        "DnsServers":[
-          "",
-          ""
-        ],
-        "EnableDhcpReservedIP":false,
-        "IPAddress":"x.x.x.x",
-        "MTU":1500,
-        "PhysicalAddress":"xx:xx:xx:xx:xx:xx",
-        "SubnetMask":"x.x.x.x"
-      }
-    }
-  },
-  "id":999,
-  "session":""
+    "method": "configManager.setConfig",
+    "params": {
+        "name": "VSP_CGI",
+        "table": {
+            "AutoRegister": {
+                "DeviceID": "<device_serial>",
+                "Enable": true,
+                "Servers": [
+                    {
+                        "Address": "",
+                        "Domain": "<adms_server>",
+                        "HttpsEnable": false,
+                        "Port": 60087,
+                        "Type": 0
+                    }
+                ]
+            },
+            "ServiceStart": true
+        }
+    },
+    "id": 1000,
+    "session": "<session_token>"
 }
+```
+
+### Set Timezone (NTP)
+
+Set timezone to Jakarta and configure NTP server.
+
+```json
+{
+    "method": "configManager.setConfig",
+    "params": {
+        "name": "NTP",
+        "table": {
+            "Address": "time.windows.com",
+            "Enable": false,
+            "Port": 123,
+            "TimeZone": 12,
+            "TimeZoneDesc": "Jakarta",
+            "UpdatePeriod": 10
+        }
+    },
+    "id": 1000,
+    "session": "<session_token>"
+}
+```
+
+### Set _DHCloudUpgradeRecord_
+
+Configure cloud upgrade check settings.
+
+```json
+{
+    "method": "configManager.setConfig",
+    "params": {
+        "name": "_DHCloudUpgradeRecord_",
+        "table": {
+            "AutoCheck": 1,
+            "CheckInterval": 1380,
+            "LastSubVersion": "",
+            "LastVersion": "Eng_PN_V3.002.0000002.0.R.20250307",
+            "ProxyAddr": "updatev2.easy4ipcloud.com",
+            "ProxyPort": 443,
+            "Upgrade": 0,
+            "downloadState": 1,
+            "packageId": ""
+        }
+    },
+    "id": 1000,
+    "session": "<session_token>"
+}
+```
+
+---
+
+## User Management
+
+### Change Password
+
+Uses CGI endpoint with Digest Auth.
+
+```
+GET http://<device-ip>/cgi-bin/userManager.cgi?action=modifyPassword&name=admin&pwd=<new_password>&pwdOld=<old_password>
+```
+
+With curl:
+```bash
+curl --digest -u admin:<old_password> \
+  "http://<device-ip>/cgi-bin/userManager.cgi?action=modifyPassword&name=admin&pwd=<new_password>&pwdOld=<old_password>"
 ```
